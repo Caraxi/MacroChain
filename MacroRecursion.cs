@@ -14,12 +14,6 @@ namespace MacroRecursion {
         
         private IntPtr macroBasePtr = IntPtr.Zero;
         private IntPtr macroDataPtr = IntPtr.Zero;
-
-        public void Dispose() {
-            macroCallHook?.Disable();
-            macroCallHook?.Dispose();
-            pluginInterface.CommandManager.RemoveHandler("/macro");
-        }
         
         public void Initialize(DalamudPluginInterface pluginInterface) {
             this.pluginInterface = pluginInterface;
@@ -36,6 +30,12 @@ namespace MacroRecursion {
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
             }
+        }
+
+        public void Dispose() {
+            macroCallHook?.Disable();
+            macroCallHook?.Dispose();
+            pluginInterface.CommandManager.RemoveHandler("/macro");
         }
 
         private void MacroCallDetour(IntPtr a, IntPtr b) {
