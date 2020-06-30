@@ -33,9 +33,9 @@ namespace MacroRecursion {
         }
 
         public void Dispose() {
+            pluginInterface.CommandManager.RemoveHandler("/macro");
             macroCallHook?.Disable();
             macroCallHook?.Dispose();
-            pluginInterface.CommandManager.RemoveHandler("/macro");
         }
 
         private void MacroCallDetour(IntPtr a, IntPtr b) {
@@ -43,59 +43,66 @@ namespace MacroRecursion {
 
             macroBasePtr = IntPtr.Zero;
             macroDataPtr = IntPtr.Zero;
+            try {
+                // Hack-y search for first macro lol
+                var scanBack = b;
+                var limit = 200;
+                while (limit-- >= 0) {
+                    var macroDatHeaderCheck = Marshal.ReadInt64(scanBack, -40);
+                    if (macroDatHeaderCheck == 0x41442E4F5243414D) {
+                        macroDataPtr = scanBack;
+                        macroBasePtr = a;
+                        return;
+                    }
 
-            // Hack-y search for first macro lol
-            var scanBack = b;
-            var limit = 200;
-            while (limit-- >= 0) {
-                var macroDatHeaderCheck = Marshal.ReadInt64(scanBack, -40);
-                if (macroDatHeaderCheck == 0x41442E4F5243414D) {
-                    macroDataPtr = scanBack;
-                    macroBasePtr = a;
-                    return;
+                    scanBack -= 0x688;
                 }
 
-                scanBack -= 0x688;
+                PluginLog.LogError("Failed to find Macro[0]");
+            } catch (Exception ex) {
+                PluginLog.LogError(ex.ToString());
             }
-
-            PluginLog.LogError("Failed to find Macro[0]");
         }
 
         public void OnMacroCommandHandler(string command, string args) {
-            if (macroBasePtr != IntPtr.Zero && macroDataPtr != IntPtr.Zero) {
-                var argSplit = args.Split(' ');
+            try {
+                if (macroBasePtr != IntPtr.Zero && macroDataPtr != IntPtr.Zero) {
+                    var argSplit = args.Split(' ');
 
-                var num = byte.Parse(argSplit[0]);
+                    var num = byte.Parse(argSplit[0]);
 
-                if (num > 199) {
-                    pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro number.\nShould be 0 - 99");
-                    return;
-                }
-                
-                if (num < 100 && argSplit.Length > 1) {
-                    switch (argSplit[1].ToLower()) {
-                        case "shared":
-                        case "share":
-                        case "s": {
-                            num += 100;
-                            break;
-                        }
-                        case "individual":
-                        case "i": {
-                            break;
-                        }
-                        default: {
-                            pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro Page.\nUse 'shared' or 'individual'.");
-                            return;
+                    if (num > 199) {
+                        pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro number.\nShould be 0 - 99");
+                        return;
+                    }
+
+                    if (num < 100 && argSplit.Length > 1) {
+                        switch (argSplit[1].ToLower()) {
+                            case "shared":
+                            case "share":
+                            case "s": {
+                                num += 100;
+                                break;
+                            }
+                            case "individual":
+                            case "i": {
+                                break;
+                            }
+                            default: {
+                                pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro Page.\nUse 'shared' or 'individual'.");
+                                return;
+                            }
                         }
                     }
-                }
 
-                var macroPtr = macroDataPtr + 0x688 * num;
-                PluginLog.Log($"Executing Macro #{num} @ {macroPtr}");
-                macroCallHook.Original(macroBasePtr, macroPtr);
-            } else {
-                pluginInterface.Framework.Gui.Chat.PrintError("MacroRecursion is not ready.\nExecute a macro to finish setup.");
+                    var macroPtr = macroDataPtr + 0x688 * num;
+                    PluginLog.Log($"Executing Macro #{num} @ {macroPtr}");
+                    macroCallHook.Original(macroBasePtr, macroPtr);
+                } else {
+                    pluginInterface.Framework.Gui.Chat.PrintError("MacroRecursion is not ready.\nExecute a macro to finish setup.");
+                }
+            } catch (Exception ex) {
+                PluginLog.LogError(ex.ToString());
             }
         }
     }
