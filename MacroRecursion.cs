@@ -32,6 +32,12 @@ namespace MacroRecursion {
             }
         }
 
+        private int CurrentMacroLine {
+            set {
+                if (macroBasePtr != IntPtr.Zero) Marshal.WriteInt32(macroBasePtr, 0x2C0, value);
+            }
+        }
+
         public void Dispose() {
             pluginInterface.CommandManager.RemoveHandler("/macro");
             macroCallHook?.Disable();
@@ -71,33 +77,42 @@ namespace MacroRecursion {
 
                     var num = byte.Parse(argSplit[0]);
 
-                    if (num > 199) {
+                    if (num > 99) {
                         pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro number.\nShould be 0 - 99");
                         return;
                     }
 
-                    if (num < 100 && argSplit.Length > 1) {
-                        switch (argSplit[1].ToLower()) {
+                    bool shared = false;
+                    int startingLine = 0;
+                    foreach (string arg in argSplit) {
+                        switch (arg.ToLower()) {
                             case "shared":
                             case "share":
                             case "s": {
-                                num += 100;
+                                shared = true;
                                 break;
                             }
                             case "individual":
                             case "i": {
+                                shared = false;
                                 break;
                             }
                             default: {
-                                pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro Page.\nUse 'shared' or 'individual'.");
-                                return;
+                                int.TryParse(arg, out startingLine);
+                                break;
                             }
                         }
                     }
 
+                    if (shared) num += 100;
+                    
                     var macroPtr = macroDataPtr + 0x688 * num;
                     PluginLog.Log($"Executing Macro #{num} @ {macroPtr}");
                     macroCallHook.Original(macroBasePtr, macroPtr);
+
+                    if (startingLine > 0 && startingLine <= 15) {
+                        CurrentMacroLine = startingLine - 1;
+                    }
                 } else {
                     pluginInterface.Framework.Gui.Chat.PrintError("MacroRecursion is not ready.\nExecute a macro to finish setup.");
                 }
