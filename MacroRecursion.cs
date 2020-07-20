@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using Dalamud.Hooking;
 using Dalamud.Plugin;
@@ -82,9 +83,9 @@ namespace MacroRecursion {
                         return;
                     }
 
-                    bool shared = false;
-                    int startingLine = 0;
-                    foreach (string arg in argSplit) {
+                    var shared = false;
+                    var startingLine = 0;
+                    foreach (var arg in argSplit.Skip(1)) {
                         switch (arg.ToLower()) {
                             case "shared":
                             case "share":
