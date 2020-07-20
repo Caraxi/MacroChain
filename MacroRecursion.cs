@@ -39,6 +39,14 @@ namespace MacroRecursion {
             }
         }
 
+        private bool MacroLock {
+            set {
+                byte v = 0;
+                if (value) v = 1;
+                if (macroBasePtr != IntPtr.Zero) Marshal.WriteByte(macroBasePtr, 0x2B3, v);
+            }
+        }
+
         public void Dispose() {
             pluginInterface.CommandManager.RemoveHandler("/macro");
             macroCallHook?.Disable();
@@ -109,6 +117,7 @@ namespace MacroRecursion {
                     
                     var macroPtr = macroDataPtr + 0x688 * num;
                     PluginLog.Log($"Executing Macro #{num} @ {macroPtr}");
+                    MacroLock = false;
                     macroCallHook.Original(macroBasePtr, macroPtr);
 
                     if (startingLine > 0 && startingLine <= 15) {
