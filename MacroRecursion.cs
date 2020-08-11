@@ -25,7 +25,7 @@ namespace MacroRecursion {
                 macroCallHook?.Enable();
 
                 pluginInterface.CommandManager.AddHandler("/macro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
-                    HelpMessage = "Execute a Macro - /macro ## [individual/shared]",
+                    HelpMessage = "Execute a Macro - /macro ## [individual|shared] [line]",
                     ShowInHelp = true
                 });
             } catch (Exception ex) {
