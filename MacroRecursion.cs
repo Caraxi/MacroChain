@@ -20,7 +20,7 @@ namespace MacroRecursion {
             this.pluginInterface = pluginInterface;
 
             try {
-                var macroCallPtr = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? C6 86 ?? ?? ?? ?? ?? C6 86 ?? ?? ?? ?? ??");
+                var macroCallPtr = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8D 4D 28");
                 macroCallHook = new Hook<MacroCallDelegate>(macroCallPtr, new MacroCallDelegate(MacroCallDetour));
                 macroCallHook?.Enable();
 
