@@ -15,7 +15,7 @@
     </PropertyGroup>
     <PropertyGroup Label="Feature">
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-	    <Version>1.1.2.0</Version>
+	    <Version>1.1.2.1</Version>
     </PropertyGroup>
     <PropertyGroup Condition="'$(Configuration)'=='Release'">
         <AppOutputBase>$(MSBuildProjectDirectory)\</AppOutputBase>
@@ -28,7 +28,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Dalamud">
-          <HintPath>F:\repo\Dalamud\Dalamud\bin\Debug\Dalamud.dll</HintPath>
+          <HintPath>$(AppData)\XIVLauncher\addon\Hooks\Dalamud.dll</HintPath>
         </Reference>
     </ItemGroup>
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
