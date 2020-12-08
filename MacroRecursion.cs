@@ -16,8 +16,6 @@ namespace MacroRecursion {
         private IntPtr macroBasePtr = IntPtr.Zero;
         private IntPtr macroDataPtr = IntPtr.Zero;
 
-        private bool shownDeprecatedMessage = false;
-        
         public void Initialize(DalamudPluginInterface pluginInterface) {
             this.pluginInterface = pluginInterface;
 
@@ -25,11 +23,6 @@ namespace MacroRecursion {
                 var macroCallPtr = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8D 4D 28");
                 macroCallHook = new Hook<MacroCallDelegate>(macroCallPtr, new MacroCallDelegate(MacroCallDetour));
                 macroCallHook?.Enable();
-                
-                pluginInterface.CommandManager.AddHandler("/macro", new Dalamud.Game.Command.CommandInfo(OnOldMacroCommandHandler) {
-                    HelpMessage = "Execute a Macro - /macro ## [individual|shared] [line]",
-                    ShowInHelp = false
-                });
 
                 pluginInterface.CommandManager.AddHandler("/runmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
                     HelpMessage = "Execute a Macro - /runmacro ## [individual|shared] [line]",
@@ -55,7 +48,6 @@ namespace MacroRecursion {
         }
 
         public void Dispose() {
-            pluginInterface.CommandManager.RemoveHandler("/macro");
             pluginInterface.CommandManager.RemoveHandler("/runmacro");
             macroCallHook?.Disable();
             macroCallHook?.Dispose();
@@ -85,15 +77,6 @@ namespace MacroRecursion {
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
             }
-        }
-
-        public void OnOldMacroCommandHandler(string command, string args) {
-            if (!shownDeprecatedMessage) {
-                pluginInterface.Framework.Gui.Chat.PrintError("The /macro command is being removed.\nPlease update your macros to use /runmacro");
-                shownDeprecatedMessage = true;
-            }
-            
-            OnMacroCommandHandler(command, args);
         }
 
         public void OnMacroCommandHandler(string command, string args) {
