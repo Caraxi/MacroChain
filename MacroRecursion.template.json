@@ -1,11 +1,11 @@
 {
   "Author": "Caraxi",
-  "Name": "MacroRecursion",
-  "Description": "Execute macros from macros. /runmacro ## [shared] [line]",
+  "Name": "Macro Fallthrough",
+  "Description": ["Allows macros to continue into the next macro"],
   "InternalName": "MacroRecursion",
-  "AssemblyVersion": "1.1.2.1",
+  "AssemblyVersion": "VERSION",
   "RepoUrl": "https://github.com/Caraxi/MacroRecursion",
   "ApplicableVersion": "any",
   "Tags": ["Macro"],
-  "DalamudApiLevel": 2
+  "DalamudApiLevel": 3
 }

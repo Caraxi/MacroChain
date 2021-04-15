@@ -1,131 +1,94 @@
 ﻿using System;
-using System.Linq;
-using System.Runtime.InteropServices;
 using Dalamud.Hooking;
 using Dalamud.Plugin;
+using FFXIVClientInterface;
+using FFXIVClientInterface.Client.UI.Misc;
 
 namespace MacroRecursion {
-    public class MacroRecursion : IDalamudPlugin {
-        public string Name => "MacroRecursion";
+    public unsafe class MacroRecursion : IDalamudPlugin {
+
+        private ClientInterface ci;
+        
+        public string Name => "Macro Fallthrough";
         private DalamudPluginInterface pluginInterface;
         
-        private delegate void MacroCallDelegate(IntPtr a, IntPtr b);
+        private delegate void MacroCallDelegate(RaptureShellModuleStruct* a, RaptureMacroModuleStruct.Macro* b);
 
         private Hook<MacroCallDelegate> macroCallHook;
         
-        private IntPtr macroBasePtr = IntPtr.Zero;
-        private IntPtr macroDataPtr = IntPtr.Zero;
-
         public void Initialize(DalamudPluginInterface pluginInterface) {
             this.pluginInterface = pluginInterface;
+
+            ci = new ClientInterface(pluginInterface.TargetModuleScanner, pluginInterface.Data);
 
             try {
                 var macroCallPtr = pluginInterface.TargetModuleScanner.ScanText("E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? 48 8D 4D 28");
                 macroCallHook = new Hook<MacroCallDelegate>(macroCallPtr, new MacroCallDelegate(MacroCallDetour));
                 macroCallHook?.Enable();
 
-                pluginInterface.CommandManager.AddHandler("/runmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
-                    HelpMessage = "Execute a Macro - /runmacro ## [individual|shared] [line]",
+                pluginInterface.CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
+                    HelpMessage = "Execute the next macro.",
                     ShowInHelp = true
                 });
+                
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
             }
+            
         }
-
-        private int CurrentMacroLine {
-            set {
-                if (macroBasePtr != IntPtr.Zero) Marshal.WriteInt32(macroBasePtr, 0x2C0, value);
-            }
-        }
-
+        
         private bool MacroLock {
-            set {
-                byte v = 0;
-                if (value) v = 1;
-                if (macroBasePtr != IntPtr.Zero) Marshal.WriteByte(macroBasePtr, 0x2B3, v);
-            }
+            set => ci.UiModule.RaptureShellModule.Data->MacroLockState = (byte) (value ? 1 : 0);
         }
 
         public void Dispose() {
-            pluginInterface.CommandManager.RemoveHandler("/runmacro");
+            pluginInterface.CommandManager.RemoveHandler("/nextmacro");
             macroCallHook?.Disable();
             macroCallHook?.Dispose();
         }
 
-        private void MacroCallDetour(IntPtr a, IntPtr b) {
-            macroCallHook?.Original(a, b);
+        private RaptureMacroModuleStruct.Macro* lastExecutedMacro = null;
+        private RaptureMacroModuleStruct.Macro* nextMacro = null;
+        private RaptureMacroModuleStruct.Macro* downMacro = null;
 
-            macroBasePtr = IntPtr.Zero;
-            macroDataPtr = IntPtr.Zero;
-            try {
-                // Hack-y search for first macro lol
-                var scanBack = b;
-                var limit = 200;
-                while (limit-- >= 0) {
-                    var macroDatHeaderCheck = Marshal.ReadInt64(scanBack, -40);
-                    if (macroDatHeaderCheck == 0x41442E4F5243414D) {
-                        macroDataPtr = scanBack;
-                        macroBasePtr = a;
-                        return;
-                    }
+        private void MacroCallDetour(RaptureShellModuleStruct* raptureShellModule, RaptureMacroModuleStruct.Macro* macro) {
+            macroCallHook?.Original(raptureShellModule, macro);
+            lastExecutedMacro = macro;
 
-                    scanBack -= 0x688;
-                }
+            nextMacro = null;
+            downMacro = null;
 
-                PluginLog.LogError("Failed to find Macro[0]");
-            } catch (Exception ex) {
-                PluginLog.LogError(ex.ToString());
+            if (lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Individual[99] || lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Shared[99]) {
+                return;
             }
-        }
 
+            nextMacro = macro + 1;
+
+            for (var i = 90; i < 100; i++) {
+                if (lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Individual[i] || lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Shared[i]) {
+                    return;
+                }
+            }
+
+            downMacro = macro + 10;
+        }
+        
         public void OnMacroCommandHandler(string command, string args) {
             try {
-                if (macroBasePtr != IntPtr.Zero && macroDataPtr != IntPtr.Zero) {
-                    var argSplit = args.Split(' ');
-
-                    var num = byte.Parse(argSplit[0]);
-
-                    if (num > 99) {
-                        pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro number.\nShould be 0 - 99");
-                        return;
-                    }
-
-                    var shared = false;
-                    var startingLine = 0;
-                    foreach (var arg in argSplit.Skip(1)) {
-                        switch (arg.ToLower()) {
-                            case "shared":
-                            case "share":
-                            case "s": {
-                                shared = true;
-                                break;
-                            }
-                            case "individual":
-                            case "i": {
-                                shared = false;
-                                break;
-                            }
-                            default: {
-                                int.TryParse(arg, out startingLine);
-                                break;
-                            }
-                        }
-                    }
-
-                    if (shared) num += 100;
-                    
-                    var macroPtr = macroDataPtr + 0x688 * num;
-                    PluginLog.Log($"Executing Macro #{num} @ {macroPtr}");
-                    MacroLock = false;
-                    macroCallHook.Original(macroBasePtr, macroPtr);
-
-                    if (startingLine > 0 && startingLine <= 15) {
-                        CurrentMacroLine = startingLine - 1;
-                    }
+                MacroLock = false;
+                if (args.ToLower() == "down") {
+                    if (downMacro != null)
+                        MacroCallDetour(ci.UiModule.RaptureShellModule.Data, downMacro);
+                    else
+                        pluginInterface.Framework.Gui.Chat.PrintError("Can't use `/nextmacro down` on macro 90+");
                 } else {
-                    pluginInterface.Framework.Gui.Chat.PrintError("MacroRecursion is not ready.\nExecute a macro to finish setup.");
+                    if (nextMacro != null)
+                        MacroCallDetour(ci.UiModule.RaptureShellModule.Data, nextMacro);
+                    else
+                        pluginInterface.Framework.Gui.Chat.PrintError("Can't use `/nextmacro` on macro 99.");
                 }
+                MacroLock = false;
+                
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
             }
