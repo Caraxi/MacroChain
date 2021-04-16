@@ -39,6 +39,7 @@ namespace MacroRecursion {
         
         private bool MacroLock {
             set => ci.UiModule.RaptureShellModule.Data->MacroLockState = (byte) (value ? 1 : 0);
+            get => ci.UiModule.RaptureShellModule.Data->MacroLockState != 0;
         }
 
         public void Dispose() {
@@ -53,17 +54,15 @@ namespace MacroRecursion {
 
         private void MacroCallDetour(RaptureShellModuleStruct* raptureShellModule, RaptureMacroModuleStruct.Macro* macro) {
             macroCallHook?.Original(raptureShellModule, macro);
+            if (MacroLock) return;
             lastExecutedMacro = macro;
-
             nextMacro = null;
             downMacro = null;
-
             if (lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Individual[99] || lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Shared[99]) {
                 return;
             }
 
             nextMacro = macro + 1;
-
             for (var i = 90; i < 100; i++) {
                 if (lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Individual[i] || lastExecutedMacro == ci.UiModule.RaptureMacroModule.Data->Shared[i]) {
                     return;
@@ -75,16 +74,22 @@ namespace MacroRecursion {
         
         public void OnMacroCommandHandler(string command, string args) {
             try {
-                MacroLock = false;
+                if (ci.UiModule.RaptureShellModule.Data->MacroCurrentLine < 0) {
+                    pluginInterface.Framework.Gui.Chat.PrintError("No macro is running.");
+                    return;
+                }
+
                 if (args.ToLower() == "down") {
-                    if (downMacro != null)
+                    if (downMacro != null) {
+                        MacroLock = false;
                         MacroCallDetour(ci.UiModule.RaptureShellModule.Data, downMacro);
-                    else
+                    } else
                         pluginInterface.Framework.Gui.Chat.PrintError("Can't use `/nextmacro down` on macro 90+");
                 } else {
-                    if (nextMacro != null)
+                    if (nextMacro != null) {
+                        MacroLock = false;
                         MacroCallDetour(ci.UiModule.RaptureShellModule.Data, nextMacro);
-                    else
+                    } else
                         pluginInterface.Framework.Gui.Chat.PrintError("Can't use `/nextmacro` on macro 99.");
                 }
                 MacroLock = false;
