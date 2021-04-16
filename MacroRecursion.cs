@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using Dalamud.Hooking;
 using Dalamud.Plugin;
 using FFXIVClientInterface;
@@ -30,6 +31,10 @@ namespace MacroRecursion {
                     HelpMessage = "Executes the next macro.",
                     ShowInHelp = true
                 });
+                pluginInterface.CommandManager.AddHandler("/runmacro", new Dalamud.Game.Command.CommandInfo(OnRunMacroCommand) {
+                    HelpMessage = "Execute a macro (Not usable inside macros). - /runmacro ## [individual|shared].",
+                    ShowInHelp = true
+                });
                 
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
@@ -44,6 +49,7 @@ namespace MacroRecursion {
 
         public void Dispose() {
             pluginInterface.CommandManager.RemoveHandler("/nextmacro");
+            pluginInterface.CommandManager.RemoveHandler("/runmacro");
             macroCallHook?.Disable();
             macroCallHook?.Dispose();
         }
@@ -94,6 +100,43 @@ namespace MacroRecursion {
                 }
                 MacroLock = false;
                 
+            } catch (Exception ex) {
+                PluginLog.LogError(ex.ToString());
+            }
+        }
+
+        public void OnRunMacroCommand(string command, string args) {
+            try {
+                if (ci.UiModule.RaptureShellModule.Data->MacroCurrentLine >= 0) {
+                    pluginInterface.Framework.Gui.Chat.PrintError("/runmacro is not usable while macros are running. Please use /nextmacro");
+                    return;
+                }
+                var argSplit = args.Split(' ');
+                var num = byte.Parse(argSplit[0]);
+
+                if (num > 99) {
+                    pluginInterface.Framework.Gui.Chat.PrintError("Invalid Macro number.\nShould be 0 - 99");
+                    return;
+                }
+
+                var shared = false;
+                foreach (var arg in argSplit.Skip(1)) {
+                    switch (arg.ToLower()) {
+                        case "shared":
+                        case "share":
+                        case "s": {
+                            shared = true;
+                            break;
+                        }
+                        case "individual":
+                        case "i": {
+                            shared = false;
+                            break;
+                        }
+                    }
+                }
+                PluginLog.Log($"{(ulong)ci.UiModule.RaptureShellModule.Data:X}");
+                MacroCallDetour(ci.UiModule.RaptureShellModule.Data, (shared ? ci.UiModule.RaptureMacroModule.Data->Shared : ci.UiModule.RaptureMacroModule.Data->Individual)[num]);
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
             }
