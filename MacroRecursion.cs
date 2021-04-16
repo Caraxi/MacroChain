@@ -9,7 +9,7 @@ namespace MacroRecursion {
 
         private ClientInterface ci;
         
-        public string Name => "Macro Fallthrough";
+        public string Name => "Macro Chain";
         private DalamudPluginInterface pluginInterface;
         
         private delegate void MacroCallDelegate(RaptureShellModuleStruct* a, RaptureMacroModuleStruct.Macro* b);
@@ -27,7 +27,7 @@ namespace MacroRecursion {
                 macroCallHook?.Enable();
 
                 pluginInterface.CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
-                    HelpMessage = "Execute the next macro.",
+                    HelpMessage = "Executes the next macro.",
                     ShowInHelp = true
                 });
                 

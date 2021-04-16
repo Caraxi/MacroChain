@@ -1,6 +1,6 @@
 {
   "Author": "Caraxi",
-  "Name": "Macro Fallthrough",
+  "Name": "Macro Chain",
   "Description": ["Allows macros to continue into the next macro"],
   "InternalName": "MacroRecursion",
   "AssemblyVersion": "VERSION",
