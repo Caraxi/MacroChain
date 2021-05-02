@@ -30,7 +30,7 @@ namespace MacroRecursion {
                 macroCallHook?.Enable();
 
                 pluginInterface.CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
-                    HelpMessage = "Executes the next macro.",
+                    HelpMessage = "Executes the next macro. Use \"/nextmacro down\" to execute the macro directly below the currently running macro.",
                     ShowInHelp = true
                 });
                 pluginInterface.CommandManager.AddHandler("/runmacro", new Dalamud.Game.Command.CommandInfo(OnRunMacroCommand) {
