@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
+using Dalamud.Game.Internal;
 using Dalamud.Hooking;
 using Dalamud.Plugin;
 using FFXIVClientInterface;
@@ -36,6 +38,7 @@ namespace MacroRecursion {
                     ShowInHelp = true
                 });
                 
+                pluginInterface.Framework.OnUpdateEvent += FrameworkUpdate;
             } catch (Exception ex) {
                 PluginLog.LogError(ex.ToString());
             }
@@ -52,11 +55,13 @@ namespace MacroRecursion {
             pluginInterface.CommandManager.RemoveHandler("/runmacro");
             macroCallHook?.Disable();
             macroCallHook?.Dispose();
+            pluginInterface.Framework.OnUpdateEvent -= FrameworkUpdate;
         }
 
         private RaptureMacroModuleStruct.Macro* lastExecutedMacro = null;
         private RaptureMacroModuleStruct.Macro* nextMacro = null;
         private RaptureMacroModuleStruct.Macro* downMacro = null;
+        private Stopwatch paddingStopwatch = new Stopwatch();
 
         private void MacroCallDetour(RaptureShellModuleStruct* raptureShellModule, RaptureMacroModuleStruct.Macro* macro) {
             macroCallHook?.Original(raptureShellModule, macro);
@@ -80,7 +85,7 @@ namespace MacroRecursion {
         
         public void OnMacroCommandHandler(string command, string args) {
             try {
-                if (ci.UiModule.RaptureShellModule.Data->MacroCurrentLine < 0) {
+                if (lastExecutedMacro == null) {
                     pluginInterface.Framework.Gui.Chat.PrintError("No macro is running.");
                     return;
                 }
@@ -105,9 +110,30 @@ namespace MacroRecursion {
             }
         }
 
+        public void FrameworkUpdate(Framework framework) {
+            if (lastExecutedMacro == null) return;
+            if (pluginInterface?.ClientState == null) return;
+            if (!pluginInterface.ClientState.IsLoggedIn) {
+                lastExecutedMacro = null;
+                paddingStopwatch.Stop();
+                paddingStopwatch.Reset();
+                return;
+            }
+            if (ci.UiModule.RaptureShellModule.Data->MacroCurrentLine >= 0) {
+                paddingStopwatch.Restart();
+                return;
+            }
+
+            if (paddingStopwatch.ElapsedMilliseconds > 2000) {
+                lastExecutedMacro = null;
+                paddingStopwatch.Stop();
+                paddingStopwatch.Reset();
+            }
+        }
+
         public void OnRunMacroCommand(string command, string args) {
             try {
-                if (ci.UiModule.RaptureShellModule.Data->MacroCurrentLine >= 0) {
+                if (lastExecutedMacro != null) {
                     pluginInterface.Framework.Gui.Chat.PrintError("/runmacro is not usable while macros are running. Please use /nextmacro");
                     return;
                 }
