@@ -38,7 +38,7 @@
         <None Remove="lib\**" />
     </ItemGroup>
     <ItemGroup>
-        <PackageReference Include="DalamudPackager" Version="2.1.2" />
+        <PackageReference Include="DalamudPackager" Version="2.1.5" />
         <PackageReference Include="ILRepack" Version="2.1.0-beta1" GeneratePathProperty="true" />
     </ItemGroup>
     <Target Name="ILRepack" AfterTargets="PostBuildEvent">
