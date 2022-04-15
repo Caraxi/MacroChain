@@ -5,10 +5,6 @@ VisualStudioVersion = 16.0.29920.165
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MacroChain", "MacroChain.csproj", "{03548070-60E8-472F-A73D-37B91D0D9E12}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFXIVClientStructs", "lib\FFXIVClientStructs\FFXIVClientStructs\FFXIVClientStructs.csproj", "{F637A306-6998-4CC8-8938-0FE0206AFC52}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FFXIVClientStructs.Generators", "lib\FFXIVClientStructs\FFXIVClientStructs.Generators\FFXIVClientStructs.Generators.csproj", "{AEE6032C-1BBF-4F25-84F1-093EB59DC947}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -19,14 +15,6 @@ Global
 		{03548070-60E8-472F-A73D-37B91D0D9E12}.Debug|x64.Build.0 = Debug|x64
 		{03548070-60E8-472F-A73D-37B91D0D9E12}.Release|x64.ActiveCfg = Release|x64
 		{03548070-60E8-472F-A73D-37B91D0D9E12}.Release|x64.Build.0 = Release|x64
-		{F637A306-6998-4CC8-8938-0FE0206AFC52}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{F637A306-6998-4CC8-8938-0FE0206AFC52}.Debug|x64.Build.0 = Debug|Any CPU
-		{F637A306-6998-4CC8-8938-0FE0206AFC52}.Release|x64.ActiveCfg = Release|Any CPU
-		{F637A306-6998-4CC8-8938-0FE0206AFC52}.Release|x64.Build.0 = Release|Any CPU
-		{AEE6032C-1BBF-4F25-84F1-093EB59DC947}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{AEE6032C-1BBF-4F25-84F1-093EB59DC947}.Debug|x64.Build.0 = Debug|Any CPU
-		{AEE6032C-1BBF-4F25-84F1-093EB59DC947}.Release|x64.ActiveCfg = Release|Any CPU
-		{AEE6032C-1BBF-4F25-84F1-093EB59DC947}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
