@@ -27,35 +27,24 @@ namespace MacroChain {
         private delegate void MacroCallDelegate(RaptureShellModule* raptureShellModule, RaptureMacroModule.Macro* macro);
 
         private Hook<MacroCallDelegate> macroCallHook;
-
-        private bool isDisposed;
-
+        
         public MacroChain() {
-            Task.Run(() => {
-                FFXIVClientStructs.Resolver.Initialize();
-                if (isDisposed) return;
-                try {
-                    macroCallHook = new Hook<MacroCallDelegate>(new IntPtr(RaptureShellModule.fpExecuteMacro), MacroCallDetour);
-                    macroCallHook?.Enable();
+            macroCallHook = new Hook<MacroCallDelegate>(new IntPtr(RaptureShellModule.fpExecuteMacro), MacroCallDetour);
+            macroCallHook?.Enable();
 
-                    CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
-                        HelpMessage = "Executes the next macro.",
-                        ShowInHelp = true
-                    });
-                    CommandManager.AddHandler("/runmacro", new Dalamud.Game.Command.CommandInfo(OnRunMacroCommand) {
-                        HelpMessage = "Execute a macro (Not usable inside macros). - /runmacro ## [individual|shared].",
-                        ShowInHelp = true
-                    });
-
-                    Framework.Update += FrameworkUpdate;
-                } catch (Exception ex) {
-                    PluginLog.LogError(ex.ToString());
-                }
+            CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
+                HelpMessage = "Executes the next macro.",
+                ShowInHelp = true
             });
+            CommandManager.AddHandler("/runmacro", new Dalamud.Game.Command.CommandInfo(OnRunMacroCommand) {
+                HelpMessage = "Execute a macro (Not usable inside macros). - /runmacro ## [individual|shared].",
+                ShowInHelp = true
+            });
+
+            Framework.Update += FrameworkUpdate;
         }
 
         public void Dispose() {
-            isDisposed = true;
             CommandManager.RemoveHandler("/nextmacro");
             CommandManager.RemoveHandler("/runmacro");
             macroCallHook?.Disable();
