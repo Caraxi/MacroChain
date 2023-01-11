@@ -29,7 +29,7 @@ namespace MacroChain {
         private Hook<MacroCallDelegate> macroCallHook;
         
         public MacroChain() {
-            macroCallHook = Hook<MacroCallDelegate>.FromAddress(new IntPtr(RaptureShellModule.fpExecuteMacro), MacroCallDetour);
+            macroCallHook = Hook<MacroCallDelegate>.FromAddress(new IntPtr(RaptureShellModule.MemberFunctionPointers.ExecuteMacro), MacroCallDetour);
             macroCallHook?.Enable();
 
             CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
