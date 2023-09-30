@@ -1,26 +1,23 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading.Tasks;
-using Dalamud.Game;
-using Dalamud.Game.ClientState;
-using Dalamud.Game.Command;
-using Dalamud.Game.Gui;
 using Dalamud.Hooking;
 using Dalamud.IoC;
-using Dalamud.Logging;
 using Dalamud.Plugin;
+using Dalamud.Plugin.Services;
 using FFXIVClientStructs.FFXIV.Client.UI.Misc;
 using FFXIVClientStructs.FFXIV.Client.UI.Shell;
 
 namespace MacroChain {
     public sealed unsafe class MacroChain : IDalamudPlugin {
 
-        [PluginService] public static CommandManager CommandManager { get; private set; } = null!;
-        [PluginService] public static Framework Framework { get; private set; } = null!;
+        [PluginService] public static ICommandManager CommandManager { get; private set; } = null!;
+        [PluginService] public static IFramework Framework { get; private set; } = null!;
 
-        [PluginService] public static ClientState ClientState { get; private set; } = null!;
-        [PluginService] public static ChatGui Chat { get; private set; } = null!;
+        [PluginService] public static IClientState ClientState { get; private set; } = null!;
+        [PluginService] public static IChatGui Chat { get; private set; } = null!;
+        [PluginService] public static IGameInteropProvider HookProvider { get; private set; } = null!;
+        [PluginService] public static IPluginLog PluginLog { get; private set; } = null!;
 
         public string Name => "Macro Chain";
 
@@ -29,8 +26,8 @@ namespace MacroChain {
         private Hook<MacroCallDelegate> macroCallHook;
         
         public MacroChain() {
-            macroCallHook = Hook<MacroCallDelegate>.FromAddress(new IntPtr(RaptureShellModule.MemberFunctionPointers.ExecuteMacro), MacroCallDetour);
-            macroCallHook?.Enable();
+            macroCallHook = HookProvider.HookFromAddress<MacroCallDelegate>(new nint(RaptureShellModule.MemberFunctionPointers.ExecuteMacro), MacroCallDetour);
+            macroCallHook.Enable();
 
             CommandManager.AddHandler("/nextmacro", new Dalamud.Game.Command.CommandInfo(OnMacroCommandHandler) {
                 HelpMessage = "Executes the next macro.",
@@ -60,17 +57,17 @@ namespace MacroChain {
 
         private void MacroCallDetour(RaptureShellModule* raptureShellModule, RaptureMacroModule.Macro* macro) {
             macroCallHook?.Original(raptureShellModule, macro);
-            if (RaptureShellModule.Instance->MacroLocked) return;
+            if (RaptureShellModule.Instance()->MacroLocked) return;
             lastExecutedMacro = macro;
             nextMacro = null;
             downMacro = null;
-            if (lastExecutedMacro == RaptureMacroModule.Instance->Individual[99] || lastExecutedMacro == RaptureMacroModule.Instance->Shared[99]) {
+            if (lastExecutedMacro == RaptureMacroModule.Instance()->GetMacro(0, 99) || lastExecutedMacro == RaptureMacroModule.Instance()->GetMacro(1, 99)) {
                 return;
             }
 
             nextMacro = macro + 1;
-            for (var i = 90; i < 100; i++) {
-                if (lastExecutedMacro == RaptureMacroModule.Instance->Individual[i] || lastExecutedMacro == RaptureMacroModule.Instance->Shared[i]) {
+            for (var i = 90U; i < 100; i++) {
+                if (lastExecutedMacro == RaptureMacroModule.Instance()->GetMacro(0, i) || lastExecutedMacro == RaptureMacroModule.Instance()->GetMacro(1, i)) {
                     return;
                 }
             }
@@ -87,25 +84,25 @@ namespace MacroChain {
 
                 if (args.ToLower() == "down") {
                     if (downMacro != null) {
-                        RaptureShellModule.Instance->MacroLocked = false;
-                        RaptureShellModule.Instance->ExecuteMacro(downMacro);
+                        RaptureShellModule.Instance()->MacroLocked = false;
+                        RaptureShellModule.Instance()->ExecuteMacro(downMacro);
                     } else
                         Chat.PrintError("Can't use `/nextmacro down` on macro 90+");
                 } else {
                     if (nextMacro != null) {
-                        RaptureShellModule.Instance->MacroLocked = false;
-                        RaptureShellModule.Instance->ExecuteMacro(nextMacro);
+                        RaptureShellModule.Instance()->MacroLocked = false;
+                        RaptureShellModule.Instance()->ExecuteMacro(nextMacro);
                     } else
                         Chat.PrintError("Can't use `/nextmacro` on macro 99.");
                 }
-                RaptureShellModule.Instance->MacroLocked = false;
+                RaptureShellModule.Instance()->MacroLocked = false;
                 
             } catch (Exception ex) {
-                PluginLog.LogError(ex.ToString());
+                PluginLog.Error(ex.ToString());
             }
         }
 
-        public void FrameworkUpdate(Framework framework) {
+        public void FrameworkUpdate(IFramework framework) {
             if (lastExecutedMacro == null) return;
             if (ClientState == null) return;
             if (!ClientState.IsLoggedIn) {
@@ -114,7 +111,7 @@ namespace MacroChain {
                 paddingStopwatch.Reset();
                 return;
             }
-            if (RaptureShellModule.Instance->MacroCurrentLine >= 0) {
+            if (RaptureShellModule.Instance()->MacroCurrentLine >= 0) {
                 paddingStopwatch.Restart();
                 return;
             }
@@ -156,9 +153,9 @@ namespace MacroChain {
                         }
                     }
                 }
-                RaptureShellModule.Instance->ExecuteMacro((shared ? RaptureMacroModule.Instance->Shared : RaptureMacroModule.Instance->Individual)[num]);
+                RaptureShellModule.Instance()->ExecuteMacro(RaptureMacroModule.Instance()->GetMacro(shared ? 1U : 0U, num));
             } catch (Exception ex) {
-                PluginLog.LogError(ex.ToString());
+                PluginLog.Error(ex.ToString());
             }
         }
     }
